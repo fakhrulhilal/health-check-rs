@@ -82,6 +82,7 @@ jobs:
           --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'Str0ng!Passw0rd' -Q 'SELECT 1' || exit 1"
           --health-interval 10s --health-timeout 5s --health-retries 30
     env:
+      REQUIRE_LIVE: "1"
       POSTGRES_URL: Host=localhost;Username=postgres;Password=postgres;SSL Mode=Disable
       REDIS_URL: redis://localhost:6379
       ELASTIC_URL: http://localhost:9200
