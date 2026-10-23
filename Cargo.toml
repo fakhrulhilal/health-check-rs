@@ -61,14 +61,22 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
 axum = { version = "0.8", features = ["tokio", "http1"] }
 tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
-hyper-util = { version = "0.1", features = ["server-auto", "service", "http1", "tokio"] }
+hyper-util = { version = "0.1", features = ["client-legacy", "server-auto", "service", "http1", "tokio"] }
+hyper = "1"
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
 rcgen = "0.14"
 ring = "0.17"
 
 [[example]]
+name = "custom_check"
+
+[[example]]
+name = "postgres"
+required-features = ["postgres-tls"]
+
+[[example]]
 name = "axum"
-required-features = ["axum"]
+required-features = ["axum", "redis", "elasticsearch"]
 
 [package.metadata.docs.rs]
 all-features = true
