@@ -163,13 +163,15 @@ KafkaCheck::new(["broker:9093"]).configure(move |b| b.tls_config(tls.clone()))
 `with_tls_config(..)`: `native_roots_config()`, `config_with_ca_pem(pem)`, `ca_only_config(roots)`,
 `pinned_config([sha256])`, `insecure_config()`. Enabled by `postgres-tls` and `elasticsearch-tls`.
 
-## Example
+## Examples
 
-```sh
-REDIS_URL=redis://localhost POSTGRES_URL="Host=localhost;Username=postgres;SSL Mode=Disable" \
-  cargo run --example axum --features full
-curl -i localhost:3000/health
-```
+| file | scenario | run |
+|------|----------|-----|
+| [`custom_check.rs`](examples/custom_check.rs) | own backend: HTTP endpoint probe, console program, exit code 1 when unhealthy | `cargo run --example custom_check -- http://localhost:8080/ping` |
+| [`postgres.rs`](examples/postgres.rs) | provided backend: Postgres without TLS, TLS to a self-signed server, TLS verified against its CA | `cargo run --example postgres --features postgres-tls` |
+| [`axum.rs`](examples/axum.rs) | axum with Redis, Elasticsearch and `self`: `/health` plain, `/health/json` full, `/health/ready` everything but `self` | `cargo run --example axum --features axum,redis,elasticsearch` |
+
+Connection strings and URLs are read from environment variables listed at the top of each file.
 
 ## License
 

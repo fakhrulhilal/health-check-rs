@@ -97,6 +97,12 @@ jobs:
           for i in $(seq 1 30); do (echo > /dev/tcp/localhost/9092) 2>/dev/null && exit 0; sleep 2; done
           exit 1
       - run: cargo test --all-features -- --nocapture
+      - name: Run examples
+        run: |
+          cargo run --example custom_check -- http://localhost:9200/
+          PG_TLS="$POSTGRES_URL" PG_VERIFIED="$POSTGRES_URL" cargo run --example postgres --features postgres-tls
+        env:
+          PG_LOCAL: ${{ env.POSTGRES_URL }}
 
   test-macos:
     name: test (macOS, offline)
