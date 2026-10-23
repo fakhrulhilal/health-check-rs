@@ -36,8 +36,17 @@ fn assert_failed(report: &HealthReport, name: &str) {
     println!("{name}: {:?}", e.exception);
 }
 
+/// Live-test config. Missing → test is skipped locally, but fails in CI
+/// (`REQUIRE_LIVE=1`) so a misconfigured workflow can't pass silently.
 fn env(key: &str) -> Option<String> {
-    std::env::var(key).ok().filter(|v| !v.is_empty())
+    let value = std::env::var(key).ok().filter(|v| !v.is_empty());
+    if value.is_none() && key != "POSTGRES_TLS_URL" && key != "POSTGRES_TLS_CA" {
+        assert!(
+            std::env::var("REQUIRE_LIVE").is_err(),
+            "{key} must be set when REQUIRE_LIVE is set"
+        );
+    }
+    value
 }
 
 #[cfg(feature = "elasticsearch")]
