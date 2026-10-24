@@ -173,6 +173,19 @@ KafkaCheck::new(["broker:9093"]).configure(move |b| b.tls_config(tls.clone()))
 
 Connection strings and URLs are read from environment variables listed at the top of each file.
 
+## Releasing
+
+Bump `version` in `Cargo.toml`, commit, then push an annotated tag. Its message becomes the
+GitHub release notes (a lightweight tag uses the tagged commit's message instead):
+
+```sh
+git tag -a v0.1.0 -m "v0.1.0: first release" -m "- what changed"
+git push origin v0.1.0
+```
+
+The release workflow runs CI, checks the tag matches the version, publishes to crates.io and
+creates the GitHub release.
+
 ## License
 
 MIT

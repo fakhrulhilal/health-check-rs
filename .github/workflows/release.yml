@@ -34,7 +34,22 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
+      - name: Release notes from tag message
+        run: |
+          # actions/checkout turns annotated tags into lightweight ones; fetch the real tag object.
+          git fetch --force --no-tags origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+          if [ "$(git cat-file -t "refs/tags/${GITHUB_REF_NAME}")" = "tag" ]; then
+            # annotated tag: its message (signature stripped)
+            git tag -l --format='%(contents:subject)%0a%0a%(contents:body)' "${GITHUB_REF_NAME}" > notes.md
+          else
+            # lightweight tag: message of the tagged commit
+            git log -1 --format='%B' "${GITHUB_REF_NAME}" > notes.md
+          fi
+          # drop trailers such as Co-Authored-By / Signed-off-by
+          sed -i -E '/^(Co-Authored-By|Signed-off-by|Claude-Session):/Id' notes.md
+          echo "--- notes.md"; cat notes.md
+
       - name: GitHub release
-        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file notes.md --verify-tag
         env:
           GH_TOKEN: ${{ github.token }}
