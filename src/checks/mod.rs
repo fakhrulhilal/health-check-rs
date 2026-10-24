@@ -12,6 +12,8 @@ pub mod kafka;
 pub mod postgres;
 #[cfg(feature = "redis")]
 pub mod redis;
+#[cfg(feature = "sqlite")]
+pub mod sqlite;
 #[cfg(feature = "sqlserver")]
 pub mod sqlserver;
 
@@ -23,5 +25,7 @@ pub use kafka::KafkaCheck;
 pub use postgres::PostgresCheck;
 #[cfg(feature = "redis")]
 pub use redis::RedisCheck;
+#[cfg(feature = "sqlite")]
+pub use sqlite::SqliteCheck;
 #[cfg(feature = "sqlserver")]
 pub use sqlserver::SqlServerCheck;

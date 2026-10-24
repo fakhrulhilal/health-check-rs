@@ -384,3 +384,142 @@ mod kafka {
         assert_eq!(report.status, HealthStatus::Healthy);
     }
 }
+
+#[cfg(feature = "sqlite")]
+mod sqlite {
+    use super::*;
+    use health_checks::checks::SqliteCheck;
+    use libsqlite3_sys as ffi;
+    use std::ffi::CString;
+    use std::path::{Path, PathBuf};
+
+    fn tmp(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("hc-sqlite-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let p = dir.join(name);
+        let _ = std::fs::remove_file(&p);
+        p
+    }
+
+    /// Open read-write (creating), run `sql`, return the open handle.
+    fn exec_rw(path: &Path, sql: &str) -> *mut ffi::sqlite3 {
+        let p = CString::new(path.to_str().unwrap()).unwrap();
+        let q = CString::new(sql).unwrap();
+        let mut db = std::ptr::null_mut();
+        unsafe {
+            let flags = ffi::SQLITE_OPEN_READWRITE | ffi::SQLITE_OPEN_CREATE;
+            assert_eq!(
+                ffi::sqlite3_open_v2(p.as_ptr(), &mut db, flags, std::ptr::null()),
+                ffi::SQLITE_OK
+            );
+            let rc = ffi::sqlite3_exec(
+                db,
+                q.as_ptr(),
+                None,
+                std::ptr::null_mut(),
+                std::ptr::null_mut(),
+            );
+            assert_eq!(rc, ffi::SQLITE_OK);
+        }
+        db
+    }
+
+    fn description(report: &HealthReport) -> String {
+        report.entries["sqlite"]
+            .description
+            .clone()
+            .unwrap_or_default()
+    }
+
+    #[tokio::test]
+    async fn healthy_db_and_connection_string_forms() {
+        let path = tmp("ok.db");
+        unsafe {
+            ffi::sqlite3_close(exec_rw(
+                &path,
+                "CREATE TABLE t(x); INSERT INTO t VALUES (1);",
+            ))
+        };
+        let p = path.to_str().unwrap();
+        for cs in [
+            p.to_owned(),
+            format!("Data Source={p};Cache=Shared"),
+            format!("file:{p}?mode=ro"),
+        ] {
+            let report = run("sqlite", SqliteCheck::new(&cs).unwrap()).await;
+            assert_eq!(
+                report.status,
+                HealthStatus::Healthy,
+                "{cs}: {}",
+                report.to_json()
+            );
+        }
+        let report = run(
+            "sqlite",
+            SqliteCheck::new(p).unwrap().with_query("SELECT x FROM t"),
+        )
+        .await;
+        assert_eq!(report.status, HealthStatus::Healthy);
+    }
+
+    #[tokio::test]
+    async fn missing_file_is_unhealthy_and_not_created() {
+        let path = tmp("missing.db");
+        let report = run("sqlite", SqliteCheck::new(path.to_str().unwrap()).unwrap()).await;
+        assert_failed(&report, "sqlite");
+        assert!(!path.exists(), "the check must not create the database");
+    }
+
+    #[tokio::test]
+    async fn not_a_database() {
+        let path = tmp("garbage.db");
+        std::fs::write(
+            &path,
+            b"this is definitely not an sqlite file, just text padding........",
+        )
+        .unwrap();
+        let report = run("sqlite", SqliteCheck::new(path.to_str().unwrap()).unwrap()).await;
+        assert_failed(&report, "sqlite");
+        assert!(
+            description(&report).contains("not a database"),
+            "{}",
+            description(&report)
+        );
+    }
+
+    #[tokio::test]
+    async fn bad_query() {
+        let path = tmp("q.db");
+        unsafe { ffi::sqlite3_close(exec_rw(&path, "CREATE TABLE t(x);")) };
+        let check = SqliteCheck::new(path.to_str().unwrap())
+            .unwrap()
+            .with_query("SELECT * FROM nope");
+        let report = run("sqlite", check).await;
+        assert_failed(&report, "sqlite");
+        assert!(
+            description(&report).contains("no such table"),
+            "{}",
+            description(&report)
+        );
+    }
+
+    #[tokio::test]
+    async fn locked_database_fails_after_busy_timeout() {
+        let path = tmp("locked.db");
+        let writer = exec_rw(
+            &path,
+            "CREATE TABLE t(x); BEGIN EXCLUSIVE; INSERT INTO t VALUES (1);",
+        );
+        let check = SqliteCheck::new(path.to_str().unwrap())
+            .unwrap()
+            .busy_timeout(Duration::from_millis(100));
+        let report = run("sqlite", check).await;
+        unsafe { ffi::sqlite3_close(writer) };
+        assert_failed(&report, "sqlite");
+        assert!(
+            description(&report).contains("locked"),
+            "{}",
+            description(&report)
+        );
+    }
+}

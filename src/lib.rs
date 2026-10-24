@@ -16,7 +16,7 @@
 //! Xabaril `UIResponseWriter` shape.
 //!
 //! Ready-made checks live in [`checks`], each behind its own feature:
-//! `sqlserver`, `postgres` (+ `postgres-tls`), `redis`, `elasticsearch` (+ `elasticsearch-tls`), `kafka`.
+//! `sqlserver`, `postgres` (+ `postgres-tls`), `sqlite`, `redis`, `elasticsearch` (+ `elasticsearch-tls`), `kafka`.
 //!
 //! Requires a Tokio runtime (timeouts use `tokio::time`).
 

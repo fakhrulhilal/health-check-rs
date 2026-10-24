@@ -113,6 +113,19 @@ New connection + `SELECT 1` per check. SSL modes behave like Npgsql/libpq:
 To verify a self-signed server add `Root Certificate=/path/ca.pem` (`sslrootcert=` in URL form);
 otherwise the OS trust store is used. Anything other than `Disable`/`Prefer` needs `postgres-tls`.
 
+### SQLite — `sqlite` (bundled: `sqlite-bundled`)
+
+```rust
+use health_checks::checks::SqliteCheck;
+SqliteCheck::new("Data Source=/var/lib/app/app.db")?   // or a plain path, or file:app.db?mode=ro
+```
+
+Opens the file read-only (a missing file is reported, never created) and reads the schema.
+Catches missing files, non-database files, permission errors and locks held longer than
+`.busy_timeout(..)` (default 1 s). `.with_query("PRAGMA quick_check")` for a full integrity scan.
+Uses only the C bindings (`libsqlite3-sys`, +3 crates) and links the system SQLite;
+`sqlite-bundled` compiles SQLite in instead (e.g. Windows).
+
 ### Redis — `redis`
 
 ```rust
