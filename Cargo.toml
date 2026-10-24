@@ -3,7 +3,7 @@ name = "health-checks"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
-description = "Health checks modelled on ASP.NET Core's Microsoft.Extensions.Diagnostics.HealthChecks, with optional axum endpoint and ready-made checks for SQL Server, PostgreSQL, Redis, Elasticsearch and Kafka."
+description = "Health checks modelled on ASP.NET Core's Microsoft.Extensions.Diagnostics.HealthChecks, with optional axum endpoint and ready-made checks for SQL Server, PostgreSQL, SQLite, Redis, Elasticsearch and Kafka."
 license = "MIT"
 repository = "https://github.com/fakhrulhilal/health-check-rs"
 documentation = "https://docs.rs/health-checks"
@@ -22,9 +22,11 @@ redis = ["dep:redis"]
 elasticsearch = ["dep:hyper", "dep:hyper-util", "dep:http-body-util", "tokio/net"]
 elasticsearch-tls = ["elasticsearch", "tls", "dep:hyper-rustls"]
 kafka = ["dep:rskafka"]
+sqlite = ["dep:libsqlite3-sys", "tokio/rt"]
+sqlite-bundled = ["sqlite", "libsqlite3-sys/bundled"]
 # rustls config helpers (`health_checks::tls`), pulled in by the *-tls features
 tls = ["dep:rustls", "dep:rustls-native-certs", "dep:ring"]
-full = ["axum", "sqlserver", "postgres-tls", "redis", "elasticsearch-tls", "kafka"]
+full = ["axum", "sqlserver", "postgres-tls", "redis", "elasticsearch-tls", "kafka", "sqlite"]
 
 [dependencies]
 async-trait = "0.1"
@@ -50,6 +52,9 @@ hyper-util = { version = "0.1", optional = true, default-features = false, featu
 http-body-util = { version = "0.1", optional = true }
 hyper-rustls = { version = "0.27", optional = true, default-features = false, features = ["http1", "tls12", "ring"] }
 rskafka = { version = "0.6", optional = true, default-features = false }
+# Raw C bindings only (no rusqlite). Wide range so it unifies with the version your own
+# rusqlite/sqlx already uses: cargo allows a single `links = "sqlite3"` crate per build.
+libsqlite3-sys = { version = ">=0.28, <0.39", optional = true }
 
 # TLS (only with postgres-tls / elasticsearch-tls). ring, not aws-lc-rs: no C/cmake build.
 rustls = { version = "0.23", optional = true, default-features = false, features = ["ring", "std", "tls12"] }

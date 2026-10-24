@@ -24,7 +24,7 @@ jobs:
       - run: cargo clippy --all-features --all-targets
       - name: Each feature builds on its own
         run: |
-          for f in "" axum sqlserver postgres postgres-tls redis elasticsearch elasticsearch-tls kafka; do
+          for f in "" axum sqlserver postgres postgres-tls sqlite sqlite-bundled redis elasticsearch elasticsearch-tls kafka; do
             echo "::group::features=[$f]"
             cargo check --no-default-features ${f:+--features $f}
             echo "::endgroup::"
